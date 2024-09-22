@@ -5,8 +5,8 @@ using UnityEngine;
 public class Ball : MonoBehaviour
 {
     private Vector3 scaleTarget = new (0.35f, 0.35f, 0.35f);
-    public float scaleDuration = 1.0f;
-    private float gravityScale = 3.3f;
+    private readonly float scaleDuration = 1.0f;
+    private readonly float gravityScale = 3.3f;
     Rigidbody2D rb;
     CircleCollider2D cc;
     SpriteRenderer sr;
