@@ -21,7 +21,10 @@ MonoBehaviour:
   maxCycles: -1
   bounce: 0
   repeat: 1
-  movementSpeed: 2
+  movementSpeed: 1
   moveDirectionRight: 0
   startFacingUp: 0
   waveMotion: 0
+  alternate: 0
+  waveFrequency: 0
+  waveAmplitude: 0

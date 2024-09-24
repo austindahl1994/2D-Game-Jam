@@ -1,11 +1,12 @@
 using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
+using TMPro;
 using UnityEngine;
 
 public class Enemy : MonoBehaviour
 {
     [SerializeField] private EnemySO ai;
+    [SerializeField] private GameObject floatingText;
+    public float floatingTextDuration = 0.5f;
     private readonly float flipTime = 0.3f;
     private int respawnTime;
     private int moveDirection;
@@ -41,6 +42,7 @@ public class Enemy : MonoBehaviour
         timeSinceBounce = 0;
         waveFreq = ai.waveFrequency;
         waveAmp = ai.waveAmplitude;
+        //This would be called from enemy manager
         StartActions();
     }
 
@@ -62,6 +64,8 @@ public class Enemy : MonoBehaviour
     }
     public void Hit()
     {
+        UIManager.Instance.SpawnText(transform.position, ai.pointValue);
+        GameManager.Instance.AddToScore(ai.pointValue);
         if (respawnTime > 0) { 
             RespawnCoroutine = StartCoroutine(Respawn());
         }
@@ -219,7 +223,7 @@ public class Enemy : MonoBehaviour
         }
         else if (ai.bounce)
         {
-            if (needsToReset && timeSinceBounce > 0.35f)
+            if (needsToReset && timeSinceBounce > 0.45f)
             {
                 transform.localScale = new Vector3(moveDirection > 0 ? Mathf.Abs(transform.localScale.x) : -Mathf.Abs(transform.localScale.x), transform.localScale.y, transform.localScale.z);
                 if (moveDirection > 0)
@@ -283,6 +287,7 @@ public class Enemy : MonoBehaviour
         transform.position = initialPosition;
         cycleCount = 0;
     }
+
     private void OnTriggerEnter2D(Collider2D collision)
     {
         if (collision.gameObject.CompareTag("Ball"))

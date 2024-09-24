@@ -12,19 +12,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 87fc225a44b953549b763dc533f87a2e, type: 3}
   m_Name: targets
   m_EditorClassIdentifier: 
-  leftBound: {x: -4, y: 0.25}
-  rightBound: {x: 4, y: 0.25}
+  leftBound: {x: -5, y: 0.25}
+  rightBound: {x: 5, y: 0.25}
   pointValue: 20
   timeBeforeShowingInScene: 0
   timeBeforeFlippingDown: 0
   respawnTime: 2
   maxCycles: -1
-  bounce: 1
-  repeat: 0
-  movementSpeed: 3
+  bounce: 0
+  repeat: 1
+  movementSpeed: 1.25
   moveDirectionRight: 1
   startFacingUp: 1
   waveMotion: 1
   alternate: 1
-  waveFrequency: 10
+  waveFrequency: 3
   waveAmplitude: 0.2

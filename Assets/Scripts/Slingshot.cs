@@ -76,14 +76,14 @@ public class Slingshot : MonoBehaviour
 
             if (!isHoldingDownMouse)
             {
-                outerTarget.transform.localScale = Vector3.one;
+                outerTarget.transform.localScale = new Vector3(0.75f, 0.75f, 1);
                 innerTarget.GetComponent<SpriteRenderer>().color = Color.gray;
             }
             else
             {
                 //counting up every second it is held down
                 float h = Time.time - holdStartTime;
-                float scaleValue = Mathf.Clamp(1 - (h / maxHoldTime), 0, 1);
+                float scaleValue = Mathf.Clamp(.75f - (h / maxHoldTime), 0, .75f);
                 outerTarget.transform.localScale = new Vector2(scaleValue, scaleValue);
                 //y position of holder between 0.5 and 0
                 ballHolder.localPosition = new Vector2(ballHolder.localPosition.x, Mathf.Clamp(0.5f - h, 0, 0.5f));
