@@ -41,19 +41,11 @@ public class Ball : MonoBehaviour
         }
         transform.localScale = scaleTarget;
         cc.enabled = false;
-        sr.sortingOrder = 0;
+        sr.sortingOrder = 1;
         rb.gravityScale = 10;
 
         yield return new WaitForSeconds(1);
 
         Destroy(this.gameObject);
-    }
-
-    private void OnTriggerEnter2D(Collider2D collision)
-    {
-        if (collision.gameObject.CompareTag("Target")) {
-            //Debug.Log("Hit target!");
-            collision.GetComponent<Enemy>().Hit();
-        }
     }
 }

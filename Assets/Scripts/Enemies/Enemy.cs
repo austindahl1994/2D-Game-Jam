@@ -1,49 +1,75 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class Enemy : MonoBehaviour
 {
     [SerializeField] private EnemySO ai;
-    public float flipTime = 0.3f;
-    public int respawnTime;
+    private readonly float flipTime = 0.3f;
+    private int respawnTime;
     private int moveDirection;
     private float speed;
+    private int waveFreq;
+    private float waveAmp;
 
     private bool isRotating = false;
     private bool isHiding = false;
     private bool needsToReset;
-    private float initialHeight;
+    private int cycleCount;
+    private float timeSinceBounce;
+    private Vector2 initialPosition;
 
     private Coroutine MoveCoroutine = null;
-    private Coroutine RespawnCoroutine = null; //respawn after time, or if hitting the repeat, can cancel and just flip
+    private Coroutine RespawnCoroutine = null;
+
+    public AudioClip[] spawnAudio;
+    public AudioClip[] hitAudio;
+
     private void Start()
     {
-        initialHeight = transform.position.y;
+        SetInitialStats();
+    }
+    //This will be called by Enemy Manager, starts the game objects actions
+    private void SetInitialStats() {
+        initialPosition = transform.position;
         speed = ai.movementSpeed;
         respawnTime = ai.respawnTime;
         moveDirection = ai.moveDirectionRight ? 1 : -1;
-        needsToReset = respawnTime != 0;
-        if (ai.movementSpeed > 0) {
+        needsToReset = respawnTime != 0 || ai.maxCycles == -1;
+        cycleCount = 0;
+        timeSinceBounce = 0;
+        waveFreq = ai.waveFrequency;
+        waveAmp = ai.waveAmplitude;
+        StartActions();
+    }
+
+    public void StartActions() {
+        //if it has speed, it is moving, so start moving
+        if (ai.movementSpeed > 0)
+        {
             MoveCoroutine = StartCoroutine(Move());
         }
+        //should the enemy start facing up? eg. off screen, if so, start it up, otherwise flip it
         if (ai.startFacingUp)
         {
             transform.rotation = Quaternion.Euler(0, transform.rotation.eulerAngles.y, transform.rotation.eulerAngles.z);
         }
-        else { 
+        else
+        {
             StartCoroutine(Flip(true));
         }
     }
-
     public void Hit()
     {
         if (respawnTime > 0) { 
             RespawnCoroutine = StartCoroutine(Respawn());
         }
-        TargetFlip();
+        //could be flipped over already, but hit from sheriff
+        if (!isHiding) { 
+            TargetFlip();
+        }
     }
-
     //Called when the target is hit
     public void TargetFlip()
     {
@@ -52,42 +78,55 @@ public class Enemy : MonoBehaviour
             if (isHiding)
             {
                 //target not shown, should enable collider and flip it up
-                EnableColliders();
                 StartCoroutine(Flip(true));
             }
             else
             {
                 //target was hit, disable colliders and flip it down
-                DisableColliders();
                 StartCoroutine(Flip(false));
             }
         }
     }
-
-    //if 1, flips it up
+    //if flippedDown (true), flips it up, else if flippedUp (false), flip it down
     private IEnumerator Flip(bool flippedDown)
     {
         isRotating = true;
         float elapsed = 0.0f;
+
         Quaternion startRotation = Quaternion.Euler(0, transform.rotation.eulerAngles.y, transform.rotation.eulerAngles.z);
         Quaternion endRotation = Quaternion.Euler(90, transform.rotation.eulerAngles.y, transform.rotation.eulerAngles.z);
+
         while (elapsed < flipTime)
         {
-            //if not flipped down, flip it down
-            if (!flippedDown)
+            //if flipped down, flip it up 
+            if (flippedDown)
             {
-                transform.rotation = Quaternion.Lerp(startRotation, endRotation, elapsed / flipTime);
+                transform.rotation = Quaternion.Lerp(endRotation, startRotation, elapsed / flipTime);
             }
             else
             {
-                //from 90 to 0 rotation, flips up if down
-                transform.rotation = Quaternion.Lerp(endRotation, startRotation, elapsed / flipTime);
+                //If its flipped up, flip it down
+                transform.rotation = Quaternion.Lerp(startRotation, endRotation, elapsed / flipTime);
             }
             elapsed += Time.deltaTime;
             yield return null;
         }
+        //Now opposite of what it was starting
+        flippedDown = !flippedDown;
+        if (flippedDown)
+        {
+            DisableColliders();
+        }
+        else
+        {
+            if (spawnAudio.Length > 0) { 
+                AudioManager.Instance.PlaySFX(spawnAudio[Random.Range(0, spawnAudio.Length)]);
+            }
+            EnableColliders();
+        }
+
         //finalizing flip, ensuring it is 0 or 90 rotation, sets if it is hiding (not shown) or not
-        if (!flippedDown)
+        if (flippedDown)
         {
             transform.rotation = endRotation;
             isHiding = true;
@@ -99,83 +138,114 @@ public class Enemy : MonoBehaviour
         }
         isRotating = false;
     }
-    //only needs to respawn after timer
     private IEnumerator Respawn() {
         yield return new WaitForSeconds(respawnTime);
         TargetFlip();
     }
-    //Add a cycle counter, how many times it's bounced/repeated
-    //Does the target have a respawn? Then respawn it if repeating
     private IEnumerator Move()
     {
-        //check to see if which is right and left bound
+        bool isEven = transform.GetSiblingIndex() % 2 == 0;
+        //Debug.Log("Enemy is even?" + isEven);
+        int multipier = isEven && ai.alternate ? -1 : 1;
+
         while (true)
         {
-            //moves target left or right based on moveDir, which is 1 or -1
-            transform.position += new Vector3(moveDirection * speed * Time.deltaTime, 0, 0);
-            //if target tries going further than right bound
-            if (transform.position.x >= ai.rightBound.x)
+            if (ai.waveMotion)
             {
-                //If it needs to repeat, move it back over to other side
-                if (ai.repeat)
-                {
-                    transform.SetPositionAndRotation(ai.leftBound, Quaternion.Euler(needsToReset ? 0 : 90, transform.rotation.eulerAngles.y, transform.rotation.eulerAngles.z));
-                    if (RespawnCoroutine != null) { 
-                        StopCoroutine(RespawnCoroutine);
-                    }
-                    if (needsToReset)
-                    {
-                        EnableColliders();
-                    }
-                    else
-                    {
-                        DisableColliders();
-                    }
-                }
-                else if (ai.bounce)
-                {
-                    //also flip direction facing
-                    moveDirection *= -1;
-                }
-                //set the game object to not active since done after moving
-                else
-                { 
-                    gameObject.SetActive(false);
-                }
-            // if target is trying to go past left bound
-            } else if (transform.position.x <= ai.leftBound.x) {
-                //If it needs to repeat, move it back over to other side
-                if (ai.repeat)
-                {
-                    //if needing to reset, flips it back over and enables collider
-                    transform.SetPositionAndRotation(ai.rightBound, Quaternion.Euler(needsToReset ? 0 : 90, transform.rotation.eulerAngles.y, transform.rotation.eulerAngles.z));
-                    if (RespawnCoroutine != null)
-                    {
-                        StopCoroutine(RespawnCoroutine);
-                    }
-                    if (needsToReset) {
-                        EnableColliders();
-                    } else { 
-                        DisableColliders();
-                    }
-                }
-                //if it needs to bounce, will change direction and flip it around
-                else if (ai.bounce)
-                {
-                    //also flip direction facing
-                    moveDirection *= -1;
-                }
-                //set the game object to not active since done after moving
-                else
-                {
-                    gameObject.SetActive(false);
-                }
+                float verticalMove = Mathf.Sin((Time.time) * waveFreq) * waveAmp;
+                transform.position = new Vector3(
+                    transform.position.x + (moveDirection * speed * Time.deltaTime), // Move left/right
+                    initialPosition.y + verticalMove * multipier, // Oscillate up/down around the initial Y position
+                    transform.position.z // Keep the Z position the same
+                );
             }
-            if (ai.waveMotion) {
-                Debug.Log("Waving enemy");
+            else {
+                transform.position += new Vector3(moveDirection * speed * Time.deltaTime, 0, 0);
+            }
+            //Debug.Log(verticalMove);
+            // Move target left or right based on moveDirection
+
+            // Check for boundaries
+            if (transform.position.x >= ai.rightBound.x || transform.position.x <= ai.leftBound.x)
+            {
+                HandleBoundary();
+            }
+            timeSinceBounce += Time.deltaTime;
+            yield return null; // Wait for the next frame
+        }
+    }
+    private void HandleBoundary()
+    {
+        bool isRightBound = transform.position.x >= ai.rightBound.x;
+        cycleCount++;
+        //check for -1, which means infinitely needs to reset
+        if (ai.maxCycles == -1)
+        {
+            needsToReset = true;
+        }
+        //increment cycles, is it still less than maxCycles? Go again
+        else if (cycleCount > 0 && cycleCount < ai.maxCycles)
+        {
+            needsToReset = true;
+        }
+        //Neither top are true, so don't reset it
+        else {
+            needsToReset = false;
+        }
+        if (ai.repeat)
+        {
+            Vector3 newPosition = isRightBound ? ai.leftBound : ai.rightBound;
+            //Debug.Log(newPosition);
+            //put it at the opposite boundry, flip it back up if it needs to reset
+            transform.SetPositionAndRotation(new Vector2(newPosition.x, initialPosition.y), Quaternion.Euler(needsToReset ? 0 : 90, transform.rotation.eulerAngles.y, transform.rotation.eulerAngles.z));
+
+            if (RespawnCoroutine != null)
+            {
+                StopCoroutine(RespawnCoroutine);
+                RespawnCoroutine = null;
             }
 
-            yield return null; // Wait for the next frame
+            if (needsToReset)
+            {
+                isHiding = false;
+                EnableColliders();
+            }
+            else
+            {
+                isHiding = true;
+                DisableColliders();
+                //and remove from scene?
+            }
+        }
+        else if (ai.bounce)
+        {
+            if (needsToReset && timeSinceBounce > 0.35f)
+            {
+                transform.localScale = new Vector3(moveDirection > 0 ? Mathf.Abs(transform.localScale.x) : -Mathf.Abs(transform.localScale.x), transform.localScale.y, transform.localScale.z);
+                if (moveDirection > 0)
+                {
+                    gameObject.GetComponent<SpriteRenderer>().sortingOrder = -1;
+                }
+                else {
+                    gameObject.GetComponent<SpriteRenderer>().sortingOrder = -2;
+                }
+                moveDirection *= -1;
+                timeSinceBounce = 0;
+            }
+            else if (!needsToReset){
+                if (MoveCoroutine != null) { 
+                    StopCoroutine(MoveCoroutine);
+                    MoveCoroutine = null;
+                    TargetFlip();
+                }
+            }
+            // Flip direction
+        }
+        else
+        {
+            // Deactivate object if no repeat or bounce, needsToRespawn is false (spwncnt && cyc)
+            // Or just flip it over
+            gameObject.SetActive(false);
         }
     }
     private void DisableColliders()
@@ -196,5 +266,32 @@ public class Enemy : MonoBehaviour
         if (circleCollider != null) circleCollider.enabled = true;
         if (boxCollider != null) boxCollider.enabled = true;
         if (polygonCollider != null) polygonCollider.enabled = true;
+    }
+    public void ResetEnemy()
+    {
+        if (MoveCoroutine != null) {
+            StopCoroutine(MoveCoroutine);
+        }
+        if (RespawnCoroutine != null) { 
+            StopCoroutine (RespawnCoroutine);
+        }
+        MoveCoroutine = null;
+        if (!isHiding) {
+            StartCoroutine(Flip(false));
+        }
+        RespawnCoroutine = null;
+        transform.position = initialPosition;
+        cycleCount = 0;
+    }
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        if (collision.gameObject.CompareTag("Ball"))
+        {
+            Hit();
+            if (hitAudio.Length > 0)
+            {
+                AudioManager.Instance.PlaySFX(hitAudio[Random.Range(0, hitAudio.Length)]);
+            }
+        }
     }
 }
