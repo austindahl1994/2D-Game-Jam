@@ -12,7 +12,7 @@ public class GameManager : MonoBehaviour
 
     public Vector2 ScreenSize { get; private set; }
     private Camera mainCamera;
-    private Coroutine Timer = null;
+    private Coroutine Timer = null; //will stop coroutine if force restart level/exit to main menu, add logic later
     private void Awake()
     {
         if (Instance == null)
@@ -35,8 +35,8 @@ public class GameManager : MonoBehaviour
     private void Update()
     {
         CalculateScreenSize();
-
-        Cursor.visible = false;
+        //toggle on and off depending if in a menu or not
+        //Cursor.visible = false;
     }
 
     private void CalculateScreenSize() {
@@ -69,4 +69,6 @@ public class GameManager : MonoBehaviour
         }
         timerBoard.GetComponent<TextMeshPro>().text = "00";
     }
+
+    //create scene transition that uses uimanager curtain call and lights twice, once to dim scene, then close curtains, then open curtains and light up scene with delays in middle
 }

@@ -17,7 +17,7 @@ MonoBehaviour:
   pointValue: 50
   timeBeforeShowingInScene: 0
   timeBeforeFlippingDown: 0
-  respawnTime: 2
+  respawnTime: 10
   maxCycles: -1
   bounce: 0
   repeat: 1
