@@ -7,11 +7,11 @@ public class TransitionManager : MonoBehaviour
 {
     public static TransitionManager Instance;
     //move all this to a Transition Manager
-    [SerializeField] private Canvas worldCanvas;
     [SerializeField] private RectTransform leftCurtain, rightCurtain;
     [SerializeField] private Light2D worldLight;
-    [SerializeField] private GameObject[] hideWithLights;
-    private bool moving, lightsChange = false;
+    [SerializeField] private GameObject[] hideWithLights; //add west to this
+    [SerializeField] private AudioClip curtainSFX;
+    private bool moving = false, lightsChange = false;
     private void Awake()
     {
         if (Instance == null)
@@ -26,39 +26,33 @@ public class TransitionManager : MonoBehaviour
 
     private void Start()
     {
-        CurtainsStartOpen();
+        //CurtainsStartOpen();
+        CurtainsStartClosed();
     }
-    private void Update()
+
+    public void CurtainCall()
     {
-        //JUST FOR TESTING
-        if (Input.GetMouseButtonDown(1))
-        {
-            CurtainCall();
-        }
-        if (Input.GetMouseButtonDown(2))
-        {
-            Lights();
-        }
-    }
-    private void CurtainCall()
-    {
+        //Debug.Log("Curtains called and is moving: " + moving);
         if (!moving)
         {
             StartCoroutine(Curtains());
+            AudioManager.Instance.PlaySFX(curtainSFX);
         }
     }
-    private void Lights()
+    public void Lights(bool lightsOn)
     {
         if (!lightsChange)
         {
-            StartCoroutine(LightSwap());
+            StartCoroutine(LightSwap(lightsOn));
         }
     }
-    private IEnumerator LightSwap()
+    private IEnumerator LightSwap(bool lightsOn)
     {
         lightsChange = true;
-        int value = worldLight.intensity == 0 ? 1 : 0;
-        if (value == 0)
+        //if lights are on, want to turn them off
+        int value = lightsOn ? 0 : 1;
+        //if lights are currently on and we are going to be shutting them off, turn off timer/scoreboard
+        if (lightsOn)
         {
             foreach (GameObject g in hideWithLights)
             {
@@ -70,14 +64,14 @@ public class TransitionManager : MonoBehaviour
         {
             worldLight.intensity = Mathf.Lerp(worldLight.intensity, value, elapsedTime / 1.0f);
             elapsedTime += Time.deltaTime;
-            if (value == 1 && elapsedTime >= 1)
-            {
-                foreach (GameObject g in hideWithLights)
-                {
-                    g.SetActive(true);
-                }
-            }
             yield return null;
+        }
+        if (lightsOn)
+        {
+            foreach (GameObject g in hideWithLights)
+            {
+                g.SetActive(true);
+            }
         }
         lightsChange = false;
     }
@@ -103,9 +97,17 @@ public class TransitionManager : MonoBehaviour
 
         moving = false;
     }
+    private void CurtainsStartClosed()
+    {
+        float initial = leftCurtain.anchoredPosition.x;
+        leftCurtain.anchoredPosition = new Vector2(initial, leftCurtain.anchoredPosition.y);
+        rightCurtain.anchoredPosition = new Vector2(-initial, leftCurtain.anchoredPosition.y);
+    }
+    /*
     private void CurtainsStartOpen() {
         float initial = leftCurtain.anchoredPosition.x;
         leftCurtain.anchoredPosition = new Vector2(-initial, leftCurtain.anchoredPosition.y);
         rightCurtain.anchoredPosition = new Vector2(initial, leftCurtain.anchoredPosition.y);
-    }
+    }*/
+
 }

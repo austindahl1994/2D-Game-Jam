@@ -10,13 +10,14 @@ public class Enemy : MonoBehaviour
     private readonly float flipTime = 0.3f;
     private int respawnTime;
     private int moveDirection;
-    private float speed;
+    public float speed;
     private int waveFreq;
     private float waveAmp;
 
     private bool isRotating = false;
-    private bool isHiding = false;
+    public bool isHiding = false;
     private bool needsToReset;
+    private bool hasBeenStarted = false;
     private int cycleCount;
     private float timeSinceBounce;
     private Vector2 initialPosition;
@@ -42,12 +43,20 @@ public class Enemy : MonoBehaviour
         timeSinceBounce = 0;
         waveFreq = ai.waveFrequency;
         waveAmp = ai.waveAmplitude;
-        //This would be called from enemy manager
-        StartActions();
+        isHiding = !ai.startFacingUp;
+        if (!ai.startFacingUp) {
+            transform.rotation = Quaternion.Euler(90, transform.rotation.eulerAngles.y, transform.rotation.eulerAngles.z);
+        }
     }
-
     public void StartActions() {
         //if it has speed, it is moving, so start moving
+        if (hasBeenStarted)
+        {
+            return;
+        }
+        else { 
+            hasBeenStarted = true;
+        }
         if (ai.movementSpeed > 0)
         {
             MoveCoroutine = StartCoroutine(Move());
@@ -123,9 +132,10 @@ public class Enemy : MonoBehaviour
         }
         else
         {
+            /*
             if (spawnAudio.Length > 0) { 
                 AudioManager.Instance.PlaySFX(spawnAudio[Random.Range(0, spawnAudio.Length)]);
-            }
+            }*/
             EnableColliders();
         }
 
@@ -271,23 +281,41 @@ public class Enemy : MonoBehaviour
         if (boxCollider != null) boxCollider.enabled = true;
         if (polygonCollider != null) polygonCollider.enabled = true;
     }
+    public int GetSpawnDelay() { 
+        return ai.timeBeforeShowingInScene;
+    }
+    public void StopAllActions() {
+        if (MoveCoroutine != null)
+        {
+            StopCoroutine(MoveCoroutine);
+            MoveCoroutine = null;
+        }
+        if (RespawnCoroutine != null)
+        {
+            StopCoroutine(RespawnCoroutine);
+            RespawnCoroutine = null;
+        }
+    }
     public void ResetEnemy()
     {
         if (MoveCoroutine != null) {
             StopCoroutine(MoveCoroutine);
+            MoveCoroutine = null;
         }
         if (RespawnCoroutine != null) { 
             StopCoroutine (RespawnCoroutine);
+            RespawnCoroutine = null;
         }
-        MoveCoroutine = null;
-        if (!isHiding) {
-            StartCoroutine(Flip(false));
-        }
-        RespawnCoroutine = null;
         transform.position = initialPosition;
+        if (!ai.startFacingUp)
+        {
+            transform.rotation = Quaternion.Euler(90, transform.rotation.eulerAngles.y, transform.rotation.eulerAngles.z);
+        }
+        isHiding = !ai.startFacingUp;
+        hasBeenStarted = false;
         cycleCount = 0;
+        timeSinceBounce = 0;
     }
-
     private void OnTriggerEnter2D(Collider2D collision)
     {
         if (collision.gameObject.CompareTag("Ball"))
@@ -297,6 +325,15 @@ public class Enemy : MonoBehaviour
             {
                 AudioManager.Instance.PlaySFX(hitAudio[Random.Range(0, hitAudio.Length)]);
             }
+            StartCoroutine(SecondSound());
         }
+    }
+
+    private IEnumerator SecondSound() {
+        yield return new WaitForSeconds(0.2f);
+        if (spawnAudio != null) { 
+            AudioManager.Instance.PlaySFX(spawnAudio[0]);
+        }
+        yield return null;
     }
 }

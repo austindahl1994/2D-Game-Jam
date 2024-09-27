@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 4091875373557396487}
   m_Layer: 0
   m_Name: target
-  m_TagString: Target
+  m_TagString: enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -135,5 +135,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ai: {fileID: 0}
   floatingText: {fileID: 5217425944513990977, guid: c068bd8aa7e00664e9a514e60f197ba9, type: 3}
-  spawnAudio: []
-  hitAudio: []
+  floatingTextDuration: 0.5
+  speed: 0
+  isHiding: 0
+  spawnAudio:
+  - {fileID: 8300000, guid: fec938dfd16e5e8449782adb3380232a, type: 3}
+  hitAudio:
+  - {fileID: 8300000, guid: ccb27405ce04a614e9fb29cc4330bed0, type: 3}
+  - {fileID: 8300000, guid: b4f3d34d30b368e4bb1ea7a20b152a4b, type: 3}
+  - {fileID: 8300000, guid: 17c8fb4fedf23e543a5ca85969d573d8, type: 3}

@@ -11,6 +11,7 @@ public class Slingshot : MonoBehaviour
     [SerializeField] private GameObject ballPrefab;
     [SerializeField] private GameObject outerTarget;
     [SerializeField] private GameObject innerTarget;
+    [SerializeField] private SpriteRenderer innerSr, outerSr;
     private GameObject currentBall;
     private Vector3 mouse;
     private bool reloading;
@@ -36,74 +37,89 @@ public class Slingshot : MonoBehaviour
     }
     private void Update()
     {
-        MoveSlingshot();
-
-        if (!reloading)
+        if (GameManager.Instance.gamePaused)
         {
-            if (Input.GetMouseButton(0) && !isHoldingDownMouse)
-            {
-                // If mouse is already down and we haven't started holding, treat it as a new hold
-                holdStartTime = Time.time; // Start timing the hold from the current time
-                isHoldingDownMouse = true;
-            }
-
-            if (Input.GetMouseButtonDown(0))
-            {
-                holdStartTime = Time.time;
-                isHoldingDownMouse = true;
-            }
-
-            if (Input.GetMouseButtonUp(0) && isHoldingDownMouse)
-            {
-                holdDuration = Time.time - holdStartTime;
-                isHoldingDownMouse = false;
-
-                if (holdDuration < maxHoldTime)
-                {
-                    timeToTarget = 4.0f - ((holdDuration / maxHoldTime) * 3.0f);
-                }
-                else
-                {
-                    timeToTarget = 0.9f;
-                }
-                LaunchBall(timeToTarget);
-            }
-
+            innerSr.enabled = false;
+            outerSr.enabled = false;
+        }
+        else {
+            innerSr.enabled = true;
+            outerSr.enabled = true;
+        }
+        if (!GameManager.Instance.gamePaused) { 
+            MoveSlingshot();
             if (currentBall != null)
             {
                 currentBall.transform.position = ballHolder.position;
             }
 
-            if (!isHoldingDownMouse)
+            if (!reloading && GameManager.Instance.canPlay)
             {
-                outerTarget.transform.localScale = new Vector3(0.75f, 0.75f, 1);
-                innerTarget.GetComponent<SpriteRenderer>().color = Color.gray;
-            }
-            else
-            {
-                //counting up every second it is held down
-                float h = Time.time - holdStartTime;
-                float scaleValue = Mathf.Clamp(.75f - (h / maxHoldTime), 0, .75f);
-                outerTarget.transform.localScale = new Vector2(scaleValue, scaleValue);
-                //y position of holder between 0.5 and 0
-                ballHolder.localPosition = new Vector2(ballHolder.localPosition.x, Mathf.Clamp(0.5f - h, 0, 0.5f));
-                //slingString scale y between 0.5 and 1
-                slingString.transform.localScale = new Vector2(initialStringScale.x, Mathf.Clamp(h + 0.5f, 0.5f, 1));
-                if (scaleValue <= 0)
+                if (Input.GetMouseButton(0) && !isHoldingDownMouse)
                 {
-                    innerTarget.GetComponent<SpriteRenderer>().color = Color.white;
+                    // If mouse is already down and we haven't started holding, treat it as a new hold
+                    holdStartTime = Time.time; // Start timing the hold from the current time
+                    isHoldingDownMouse = true;
+                }
+
+                if (Input.GetMouseButtonDown(0))
+                {
+                    holdStartTime = Time.time;
+                    isHoldingDownMouse = true;
+                }
+
+                if (Input.GetMouseButtonUp(0) && isHoldingDownMouse)
+                {
+                    holdDuration = Time.time - holdStartTime;
+                    isHoldingDownMouse = false;
+
+                    if (holdDuration < maxHoldTime)
+                    {
+                        timeToTarget = 4.0f - ((holdDuration / maxHoldTime) * 3.0f);
+                    }
+                    else
+                    {
+                        timeToTarget = 0.9f;
+                    }
+                    LaunchBall(timeToTarget);
+                }
+
+                if (!isHoldingDownMouse)
+                {
+                    outerTarget.transform.localScale = new Vector3(0.75f, 0.75f, 1);
+                    innerTarget.GetComponent<SpriteRenderer>().color = Color.gray;
+                }
+                else
+                {
+                    //counting up every second it is held down
+                    float h = Time.time - holdStartTime;
+                    float scaleValue = Mathf.Clamp(.75f - (h / maxHoldTime), 0, .75f);
+                    outerTarget.transform.localScale = new Vector2(scaleValue, scaleValue);
+                    //y position of holder between 0.5 and 0
+                    ballHolder.localPosition = new Vector2(ballHolder.localPosition.x, Mathf.Clamp(0.5f - h, 0, 0.5f));
+                    //slingString scale y between 0.5 and 1
+                    slingString.transform.localScale = new Vector2(initialStringScale.x, Mathf.Clamp(h + 0.5f, 0.5f, 1));
+                    if (h >= 0.5f)
+                    {
+                        innerTarget.GetComponent<SpriteRenderer>().color = Color.white;
+                    }
                 }
             }
         }
     }
-
     private void MoveSlingshot() {
         mouse = Camera.main.ScreenToWorldPoint(Input.mousePosition);
         float tenPercentWidth = gm.ScreenSize.x * 0.1f;
         float clampedX = Mathf.Clamp(mouse.x, -gm.ScreenSize.x / 2 + tenPercentWidth, gm.ScreenSize.x / 2 - tenPercentWidth);
         transform.position = new Vector3(clampedX, -gm.ScreenSize.y / 2.4f, 0);
     }
-
+    public void ResetSS() {
+        outerTarget.transform.localScale = new Vector3(0.75f, 0.75f, 1);
+        innerTarget.GetComponent<SpriteRenderer>().color = Color.gray;
+        ballHolder.localPosition = initialHolder;
+        slingString.transform.localScale = initialStringScale;
+        reloading = false;
+    }
     private void CreateBall()
     {
         if (ReloadCoroutine != null) { 
@@ -114,7 +130,6 @@ public class Slingshot : MonoBehaviour
         currentBall.GetComponent<Rigidbody2D>().isKinematic = true; // Disable physics until launched
         reloading = false;
     }
-
     private void LaunchBall(float force)
     {
         ReloadCoroutine = StartCoroutine(Reload());
@@ -134,8 +149,6 @@ public class Slingshot : MonoBehaviour
         currentBall = null;
         //CreateBall();
     }
-
-    
     private IEnumerator Reload() {
         reloading = true;
         ballHolder.localPosition = initialHolder;
@@ -143,7 +156,6 @@ public class Slingshot : MonoBehaviour
         yield return new WaitForSeconds(reloadTime);
         CreateBall();
     }
-
     public void SetSlingshot(int color) {
         GetComponent<SpriteRenderer>().sprite = slingShotSprites[color];
     }

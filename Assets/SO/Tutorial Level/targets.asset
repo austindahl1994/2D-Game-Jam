@@ -15,15 +15,15 @@ MonoBehaviour:
   leftBound: {x: -5, y: 0.25}
   rightBound: {x: 5, y: 0.25}
   pointValue: 20
-  timeBeforeShowingInScene: 0
+  timeBeforeShowingInScene: 1
   timeBeforeFlippingDown: 0
   respawnTime: 5
   maxCycles: -1
   bounce: 0
   repeat: 1
-  movementSpeed: 1.25
+  movementSpeed: 1
   moveDirectionRight: 1
-  startFacingUp: 1
+  startFacingUp: 0
   waveMotion: 1
   alternate: 1
   waveFrequency: 3

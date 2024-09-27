@@ -5,7 +5,7 @@ using UnityEngine;
 public class AudioManager : MonoBehaviour
 {
     public static AudioManager Instance;
-
+    
     [SerializeField] private AudioSource sfxSource;
     [SerializeField] private AudioSource musicSource;
 
@@ -26,7 +26,7 @@ public class AudioManager : MonoBehaviour
     // Method to play a sound effect
     public void PlaySFX(AudioClip clip)
     {
-        sfxSource.PlayOneShot(clip);
+        sfxSource.PlayOneShot(clip); // * 0-1 how loud the SFX settings is
     }
 
     // Method to play looping music

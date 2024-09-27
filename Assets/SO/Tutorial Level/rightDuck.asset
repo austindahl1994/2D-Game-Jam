@@ -15,7 +15,7 @@ MonoBehaviour:
   leftBound: {x: -5, y: 2.5}
   rightBound: {x: 5, y: 2.5}
   pointValue: 10
-  timeBeforeShowingInScene: 0
+  timeBeforeShowingInScene: 5
   timeBeforeFlippingDown: 0
   respawnTime: 3
   maxCycles: -1
