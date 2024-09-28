@@ -12,6 +12,7 @@ public class TransitionManager : MonoBehaviour
     [SerializeField] private GameObject[] hideWithLights; //add west to this
     [SerializeField] private AudioClip curtainSFX;
     private bool moving = false, lightsChange = false;
+    private float initial;
     private void Awake()
     {
         if (Instance == null)
@@ -27,6 +28,7 @@ public class TransitionManager : MonoBehaviour
     private void Start()
     {
         //CurtainsStartOpen();
+        initial = leftCurtain.anchoredPosition.x;
         CurtainsStartClosed();
     }
 
@@ -78,13 +80,13 @@ public class TransitionManager : MonoBehaviour
     private IEnumerator Curtains()
     {
         moving = true;
-        float initial = leftCurtain.anchoredPosition.x;
         float elapsedTime = 0;
         float duration = 1.0f;
+        float holder = leftCurtain.anchoredPosition.x;
 
         while (elapsedTime < duration)
         {
-            float newX = Mathf.Lerp(initial, -initial, elapsedTime / duration);
+            float newX = Mathf.Lerp(holder, -holder, elapsedTime / duration);
 
             leftCurtain.anchoredPosition = new Vector2(newX, leftCurtain.anchoredPosition.y);
             rightCurtain.anchoredPosition = new Vector2(-newX, leftCurtain.anchoredPosition.y);
@@ -92,22 +94,21 @@ public class TransitionManager : MonoBehaviour
             elapsedTime += Time.deltaTime;
             yield return null;
         }
-        leftCurtain.anchoredPosition = new Vector2(-initial, leftCurtain.anchoredPosition.y);
-        rightCurtain.anchoredPosition = new Vector2(initial, leftCurtain.anchoredPosition.y);
+        leftCurtain.anchoredPosition = new Vector2(-holder, leftCurtain.anchoredPosition.y);
+        rightCurtain.anchoredPosition = new Vector2(holder, leftCurtain.anchoredPosition.y);
 
         moving = false;
     }
-    private void CurtainsStartClosed()
+    public void CurtainsStartClosed()
     {
-        float initial = leftCurtain.anchoredPosition.x;
         leftCurtain.anchoredPosition = new Vector2(initial, leftCurtain.anchoredPosition.y);
         rightCurtain.anchoredPosition = new Vector2(-initial, leftCurtain.anchoredPosition.y);
     }
-    /*
-    private void CurtainsStartOpen() {
+    
+    public void CurtainsStartOpen() {
         float initial = leftCurtain.anchoredPosition.x;
         leftCurtain.anchoredPosition = new Vector2(-initial, leftCurtain.anchoredPosition.y);
         rightCurtain.anchoredPosition = new Vector2(initial, leftCurtain.anchoredPosition.y);
-    }*/
+    }
 
 }

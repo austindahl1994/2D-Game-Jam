@@ -10,6 +10,7 @@ public class EnemyManager : MonoBehaviour
     public List<GameObject> tutorialEnemies;
     public List<GameObject> westEnemies;
     private List<List<GameObject>> enemyGroups = new();
+    private Vector2 offScreen;
     //private Coroutine StartLevelCoroutine;
 
     private void Awake()
@@ -34,6 +35,7 @@ public class EnemyManager : MonoBehaviour
         enemyGroups.Add(westEnemies);
         SortEnemies(tutorialEnemies);
         SortEnemies(westEnemies);
+        offScreen = new Vector2(GameManager.Instance.ScreenSize.x * 10, GameManager.Instance.ScreenSize.y * 10);
         /*
          westLevel.position = new Vector2(GameManager.Instance.ScreenSize.x * 10, GameManager.Instance.ScreenSize.y * 10);
         */
@@ -58,16 +60,16 @@ public class EnemyManager : MonoBehaviour
         }
     }
     public void ChangeShownLevel(int cl) {
-        if (cl == 0)
+        if (cl == 1) //1 for testing west, 0 normally to play starting with tutorial/ducks
         {
-            Debug.Log("Moving tutorial out of way");
-            tutorialLevel.position = new Vector2(GameManager.Instance.ScreenSize.x * 10, GameManager.Instance.ScreenSize.y * 10);
+            //Debug.Log("Moving tutorial out of way");
             westLevel.transform.position = Vector2.zero;
+            tutorialLevel.position = offScreen;
         }
         else {
-            Debug.Log("Moving west out of way");
-            westLevel.position = new Vector2(GameManager.Instance.ScreenSize.x * 10, GameManager.Instance.ScreenSize.y * 10);
+            //Debug.Log("Moving west out of way");
             tutorialLevel.transform.position = Vector2.zero;
+            westLevel.position = offScreen;
         }
     }
     private void SortEnemies(List<GameObject> enemies)
@@ -98,6 +100,8 @@ public class EnemyManager : MonoBehaviour
         StartCoroutine(EndPlayingLevel());
     }
     public void ForceStopLevel() {
+        Debug.Log("Force stop called");
+        StopAllCoroutines();
         foreach (GameObject enemy in enemyGroups[GameManager.Instance.currentLevel])
         {
             enemy.GetComponent<Enemy>().ResetEnemy();

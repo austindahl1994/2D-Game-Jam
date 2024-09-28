@@ -325,15 +325,6 @@ public class Enemy : MonoBehaviour
             {
                 AudioManager.Instance.PlaySFX(hitAudio[Random.Range(0, hitAudio.Length)]);
             }
-            StartCoroutine(SecondSound());
         }
-    }
-
-    private IEnumerator SecondSound() {
-        yield return new WaitForSeconds(0.2f);
-        if (spawnAudio != null) { 
-            AudioManager.Instance.PlaySFX(spawnAudio[0]);
-        }
-        yield return null;
     }
 }

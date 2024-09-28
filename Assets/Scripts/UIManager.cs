@@ -9,12 +9,19 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Canvas worldCanvas, screenCanvas, counterCanvas;
     [SerializeField] private GameObject textObject, settingsScreen, startScreen, endLevelScreen;
     [SerializeField] private Image blackScreen;
-    [SerializeField] private TMP_Dropdown dd;
     [SerializeField] private GameObject CountdownParent;
     [SerializeField] private TextMeshProUGUI endScore;
+    [SerializeField] private Image colorButton;
+    [SerializeField] private Sprite[] ssSprites;
+    [SerializeField] private Slider sfxSlider, musicSlider;
 
     private RectTransform wRect, cRect;
     public bool inMenu = false;
+
+
+    // Public integers for SFX and Music volume (0-10)
+    public int SFXVolume { get; private set; }
+    public int MusicVolume { get; private set; }
     private void Awake()
     {
         if (Instance == null)
@@ -30,20 +37,40 @@ public class UIManager : MonoBehaviour
     {
         wRect = worldCanvas.GetComponent<RectTransform>();
         cRect = counterCanvas.GetComponent<RectTransform>();
-        dd.onValueChanged.AddListener(OnDropdownValueChanged);
         ShowStart(true);
+        SFXVolume = 5;
+        MusicVolume = 5;
+        sfxSlider.value = 5;
+        musicSlider.value = 5;
+        sfxSlider.onValueChanged.AddListener(OnSFXSliderChanged);
+        musicSlider.onValueChanged.AddListener(OnMusicSliderChanged);
     }
     private void Update()
     {
         wRect.sizeDelta = new Vector2(GameManager.Instance.ScreenSize.x, GameManager.Instance.ScreenSize.y);
         cRect.sizeDelta = new Vector2(GameManager.Instance.ScreenSize.x, GameManager.Instance.ScreenSize.y);
         if (Input.GetKeyDown(KeyCode.Escape) && !GameManager.Instance.loadingLevel && !GameManager.Instance.inStartMenu) {
-            SettingsMenu();
+            SettingsMenu(true);
         }
     }
-    public void SettingsMenu() {
+    public void SettingsMenu(bool v) {
         GameManager.Instance.PauseGame();
-        if (inMenu) { 
+        if (inMenu || v == false) { 
+            blackScreen.gameObject.SetActive(false);
+            settingsScreen.SetActive(false);
+            inMenu = false;
+        }
+        else
+        {
+            blackScreen.gameObject.SetActive(true);
+            settingsScreen.SetActive(true);
+            inMenu = true;
+        }
+    }
+    public void SettingsButtonMenu() {
+        GameManager.Instance.PauseGame();
+        if (inMenu)
+        {
             blackScreen.gameObject.SetActive(false);
             settingsScreen.SetActive(false);
             inMenu = false;
@@ -72,10 +99,7 @@ public class UIManager : MonoBehaviour
             Destroy(spawnedText, 1.0f);
         }
     }
-    private void OnDropdownValueChanged(int selectedIndex)
-    {
-        GameManager.Instance.SetSlingshotColor(selectedIndex);
-    }
+
     public void ShowStart(bool show) { 
         startScreen.SetActive(show);
     }
@@ -87,8 +111,10 @@ public class UIManager : MonoBehaviour
             blackScreen.gameObject.SetActive(true);
         }
         else {
-            endLevelScreen.SetActive(false);
-            blackScreen.gameObject.SetActive(false);
+            if (endLevelScreen.activeInHierarchy) { 
+                endLevelScreen.SetActive(false);
+                blackScreen.gameObject.SetActive(false);
+            }
         }
     }
     //Ready, set, go!
@@ -106,5 +132,20 @@ public class UIManager : MonoBehaviour
             child.gameObject.SetActive(false);
         }
         yield return new WaitForSeconds(1.0f);
+    }
+
+    public void ChangeSSButtonColor(int color) { 
+        colorButton.sprite = ssSprites[color];
+    }
+
+    private void OnSFXSliderChanged(float value)
+    {
+        SFXVolume = Mathf.RoundToInt(value);
+        AudioManager.Instance.ChangeSFXVolume(SFXVolume);
+    }
+    private void OnMusicSliderChanged(float value)
+    {
+        MusicVolume = Mathf.RoundToInt(value); 
+        AudioManager.Instance.ChangeMusicVolume(MusicVolume);
     }
 }

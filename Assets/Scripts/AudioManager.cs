@@ -8,6 +8,7 @@ public class AudioManager : MonoBehaviour
     
     [SerializeField] private AudioSource sfxSource;
     [SerializeField] private AudioSource musicSource;
+    [SerializeField] private AudioClip musicClip;
 
     private void Awake()
     {
@@ -21,19 +22,33 @@ public class AudioManager : MonoBehaviour
         }
     }
 
-
+    private void Start()
+    {
+        PlayMusic(musicClip);
+    }
 
     // Method to play a sound effect
     public void PlaySFX(AudioClip clip)
     {
-        sfxSource.PlayOneShot(clip); // * 0-1 how loud the SFX settings is
+        float volume = UIManager.Instance.SFXVolume / 10f; 
+        sfxSource.PlayOneShot(clip, volume);               
     }
 
     // Method to play looping music
     public void PlayMusic(AudioClip clip)
     {
         musicSource.clip = clip;
+        musicSource.volume = UIManager.Instance.MusicVolume / 10f; 
         musicSource.Play();
+    }
+
+    public void ChangeMusicVolume(int v) {
+        musicSource.volume = (float)v / 10;
+    }
+
+    public void ChangeSFXVolume(int v)
+    {
+        sfxSource.volume = (float)v / 10;
     }
 }
 

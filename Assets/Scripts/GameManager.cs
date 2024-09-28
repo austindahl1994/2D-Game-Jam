@@ -7,9 +7,10 @@ public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
     [SerializeField] private GameObject tutorialScoreboard, tutorialTimerBoard, slingshot, westernScoreBoard, westTimerBoard;
+    [SerializeField] private AudioClip startingBell, finalDings;
     public Vector2 ScreenSize { get; private set; }
     public bool gamePaused = false, loadingLevel = false, canPlay = false, inStartMenu = true;
-    public int score = 0, currentLevel = 0;
+    public int score = 0, currentLevel = 1, colorCount = 0;
     public int tutorialTimer = 30, westernTimer = 60;
     private Coroutine Timer = null; //will stop coroutine if force restart level/exit to main menu, add logic later
     //private Coroutine TransitionCoroutine;
@@ -81,6 +82,8 @@ public class GameManager : MonoBehaviour
     public void StartPlaying() {
         //game no longer paused
         UIManager.Instance.ShowStart(false);
+        EnemyManager.Instance.ChangeShownLevel(1);
+
         if (gamePaused) { 
             PauseGame();
         }
@@ -92,6 +95,19 @@ public class GameManager : MonoBehaviour
             StopCoroutine(Timer);
             Timer = null;
         }
+        StopAllCoroutines();
+        TransitionManager.Instance.CurtainsStartClosed();
+        EnemyManager.Instance.ForceStopLevel();
+        UIManager.Instance.SettingsMenu(false);
+        UIManager.Instance.ShowStart(true);
+        UIManager.Instance.ShowEndLevel(false);
+        currentLevel = 0;
+        EnemyManager.Instance.ResetCurrentLevelEnemies();
+        ResetScores();
+        canPlay = false;
+        inStartMenu = true;
+        PauseGame();
+        Debug.Log("Exit to menu called");
     }
     private void ChangeLevel() {
         if (currentLevel == 0) {
@@ -128,6 +144,7 @@ public class GameManager : MonoBehaviour
             remainingTime--; 
         }
         timerBoard.GetComponent<TextMeshPro>().text = "00";
+        AudioManager.Instance.PlaySFX(finalDings);
         //add delay, show Time Up! wait a sec, lower all current enemies, reset them, show end level
         StartCoroutine(EndLevel());
     }
@@ -142,6 +159,7 @@ public class GameManager : MonoBehaviour
             //UI manager starts counting down for 6seconds or w.e
             yield return new WaitForSeconds(3);
             //enemy manager starts the game
+            AudioManager.Instance.PlaySFX(startingBell);
             canPlay = true;
             EnemyManager.Instance.StartPlayingLevel(currentLevel);
             Timer = StartCoroutine(CountDown());
@@ -162,8 +180,8 @@ public class GameManager : MonoBehaviour
             yield return new WaitForSeconds(1);
             ChangeLevel();
             yield return new WaitForSeconds(1);
-            currentLevel++;
             TransitionManager.Instance.CurtainCall();
+            currentLevel = (currentLevel + 1) % 2;
             yield return new WaitForSeconds(0.5f);
             TransitionManager.Instance.Lights(false);
             yield return new WaitForSeconds(1.2f);
@@ -171,6 +189,7 @@ public class GameManager : MonoBehaviour
             ResetTimers();
             UIManager.Instance.StartReady();
             yield return new WaitForSeconds(3);
+            AudioManager.Instance.PlaySFX(startingBell);
             EnemyManager.Instance.StartPlayingLevel(currentLevel);
             Timer = StartCoroutine(CountDown());
             canPlay = true;
@@ -186,8 +205,10 @@ public class GameManager : MonoBehaviour
         UIManager.Instance.ShowEndLevel(true);
         PauseGame();
     }
-    public void SetSlingshotColor(int color) {
-        slingshot.GetComponent<Slingshot>().SetSlingshot(color);
+    public void SetSlingshotColor() {
+        colorCount = (colorCount + 1) % 3;
+        slingshot.GetComponent<Slingshot>().SetSlingshot(colorCount);
+        UIManager.Instance.ChangeSSButtonColor(colorCount);
     }
     private void CalculateScreenSize() {
         float screenHalfHeightInWorldUnits = Camera.main.orthographicSize;

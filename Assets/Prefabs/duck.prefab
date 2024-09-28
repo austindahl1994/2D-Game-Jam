@@ -99,16 +99,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ai: {fileID: 0}
-  floatingText: {fileID: 5217425944513990977, guid: c068bd8aa7e00664e9a514e60f197ba9, type: 3}
+  floatingText: {fileID: 1101148744126419528, guid: c068bd8aa7e00664e9a514e60f197ba9, type: 3}
   floatingTextDuration: 0.5
   speed: 0
   isHiding: 0
-  spawnAudio:
-  - {fileID: 8300000, guid: fec938dfd16e5e8449782adb3380232a, type: 3}
+  spawnAudio: []
   hitAudio:
-  - {fileID: 8300000, guid: ccb27405ce04a614e9fb29cc4330bed0, type: 3}
-  - {fileID: 8300000, guid: b4f3d34d30b368e4bb1ea7a20b152a4b, type: 3}
-  - {fileID: 8300000, guid: 17c8fb4fedf23e543a5ca85969d573d8, type: 3}
+  - {fileID: 8300000, guid: a7449b8ab9ec07e45b696e13215d33e1, type: 3}
+  - {fileID: 8300000, guid: 2e28a7820917ff644afaafb75126e89e, type: 3}
+  - {fileID: 8300000, guid: f3320097194f4184e97dfb27015bd0ef, type: 3}
 --- !u!60 &7256962951477910266
 PolygonCollider2D:
   m_ObjectHideFlags: 0
