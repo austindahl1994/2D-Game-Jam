@@ -10,15 +10,16 @@ public class UIManager : MonoBehaviour
     [SerializeField] private GameObject textObject, settingsScreen, startScreen, endLevelScreen;
     [SerializeField] private Image blackScreen;
     [SerializeField] private GameObject CountdownParent;
-    [SerializeField] private TextMeshProUGUI endScore;
+    [SerializeField] private TextMeshProUGUI endScore, highScoreTut, highScoreWest;
     [SerializeField] private Image colorButton;
     [SerializeField] private Sprite[] ssSprites;
     [SerializeField] private Slider sfxSlider, musicSlider;
+    [SerializeField] private Button startButton, ssButton, exitButton;
 
     private RectTransform wRect, cRect;
-    public bool inMenu = false;
+    public bool inMenu = false, inLevelEndMenu = false;
 
-
+    public int tutHS = 0, westHS = 0;
     // Public integers for SFX and Music volume (0-10)
     public int SFXVolume { get; private set; }
     public int MusicVolume { get; private set; }
@@ -32,27 +33,57 @@ public class UIManager : MonoBehaviour
         {
             Destroy(gameObject);
         }
+        SFXVolume = 5;
+        MusicVolume = 3;
     }
     private void Start()
     {
         wRect = worldCanvas.GetComponent<RectTransform>();
         cRect = counterCanvas.GetComponent<RectTransform>();
         ShowStart(true);
-        SFXVolume = 5;
-        MusicVolume = 5;
         sfxSlider.value = 5;
-        musicSlider.value = 5;
+        musicSlider.value = 3;
         sfxSlider.onValueChanged.AddListener(OnSFXSliderChanged);
         musicSlider.onValueChanged.AddListener(OnMusicSliderChanged);
+        highScoreTut.gameObject.SetActive(false);
+        highScoreWest.gameObject.SetActive(false);
     }
     private void Update()
     {
         wRect.sizeDelta = new Vector2(GameManager.Instance.ScreenSize.x, GameManager.Instance.ScreenSize.y);
         cRect.sizeDelta = new Vector2(GameManager.Instance.ScreenSize.x, GameManager.Instance.ScreenSize.y);
-        if (Input.GetKeyDown(KeyCode.Escape) && !GameManager.Instance.loadingLevel && !GameManager.Instance.inStartMenu) {
+        if (Input.GetKeyDown(KeyCode.Escape) && GameManager.Instance.inStartMenu)
+        {
+            SettingsStartMenu();
+        }
+        if (Input.GetKeyDown(KeyCode.Escape) && !GameManager.Instance.loadingLevel && !GameManager.Instance.inStartMenu && !inLevelEndMenu) {
             SettingsMenu(true);
         }
     }
+
+    private void SettingsStartMenu() {
+        if (inMenu)
+        {
+            startButton.gameObject.SetActive(true);
+            ssButton.gameObject.SetActive(true);
+            blackScreen.gameObject.SetActive(false);
+            settingsScreen.SetActive(false);
+            exitButton.gameObject.SetActive(false);
+            Cursor.visible = true;
+            inMenu = false;
+        }
+        else
+        {
+            startButton.gameObject.SetActive(false);
+            ssButton.gameObject.SetActive(false);
+            blackScreen.gameObject.SetActive(true);
+            settingsScreen.SetActive(true);
+            exitButton.gameObject.SetActive(false);
+            Cursor.visible = true;
+            inMenu = true;
+        }
+    }
+
     public void SettingsMenu(bool v) {
         GameManager.Instance.PauseGame();
         if (inMenu || v == false) { 
@@ -64,11 +95,16 @@ public class UIManager : MonoBehaviour
         {
             blackScreen.gameObject.SetActive(true);
             settingsScreen.SetActive(true);
+            exitButton.gameObject.SetActive(true);
             inMenu = true;
         }
     }
     public void SettingsButtonMenu() {
         GameManager.Instance.PauseGame();
+        if (GameManager.Instance.inStartMenu) { 
+            SettingsStartMenu();
+            return;
+        }
         if (inMenu)
         {
             blackScreen.gameObject.SetActive(false);
@@ -79,6 +115,7 @@ public class UIManager : MonoBehaviour
         {
             blackScreen.gameObject.SetActive(true);
             settingsScreen.SetActive(true);
+            exitButton.gameObject.SetActive(true);
             inMenu = true;
         }
     }
@@ -100,18 +137,37 @@ public class UIManager : MonoBehaviour
         }
     }
 
-    public void ShowStart(bool show) { 
+    public void ShowStart(bool show) {
+        if (tutHS == 0)
+        {
+            highScoreTut.gameObject.SetActive(false);
+        }
+        else {
+            highScoreTut.gameObject.SetActive(true);
+        }
+        if (westHS == 0)
+        {
+            highScoreWest.gameObject.SetActive(false);
+        }
+        else
+        {
+            highScoreWest.gameObject.SetActive(true);
+        }
         startScreen.SetActive(show);
     }
     public void ShowEndLevel(bool show) {
         if (show)
         {
+            inMenu = true;
+            inLevelEndMenu = true;
             endLevelScreen.SetActive(true);
             endScore.text = GameManager.Instance.score.ToString();
             blackScreen.gameObject.SetActive(true);
         }
         else {
-            if (endLevelScreen.activeInHierarchy) { 
+            inLevelEndMenu = false;
+            if (endLevelScreen.activeInHierarchy) {
+                inMenu = false;
                 endLevelScreen.SetActive(false);
                 blackScreen.gameObject.SetActive(false);
             }
@@ -147,5 +203,17 @@ public class UIManager : MonoBehaviour
     {
         MusicVolume = Mathf.RoundToInt(value); 
         AudioManager.Instance.ChangeMusicVolume(MusicVolume);
+    }
+
+    public void UpdateHighScore(int score, int level) {
+        if (level == 0)
+        {
+            tutHS = score;
+            highScoreTut.text = score.ToString();
+        }
+        else { 
+            westHS = score;
+            highScoreWest.text = score.ToString();
+        }
     }
 }

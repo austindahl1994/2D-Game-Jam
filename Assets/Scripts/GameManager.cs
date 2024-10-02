@@ -10,7 +10,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private AudioClip startingBell, finalDings;
     public Vector2 ScreenSize { get; private set; }
     public bool gamePaused = false, loadingLevel = false, canPlay = false, inStartMenu = true;
-    public int score = 0, currentLevel = 1, colorCount = 0;
+    public int score = 0, currentLevel = 0, colorCount = 0;
     public int tutorialTimer = 30, westernTimer = 60;
     private Coroutine Timer = null; //will stop coroutine if force restart level/exit to main menu, add logic later
     //private Coroutine TransitionCoroutine;
@@ -82,11 +82,10 @@ public class GameManager : MonoBehaviour
     public void StartPlaying() {
         //game no longer paused
         UIManager.Instance.ShowStart(false);
-        EnemyManager.Instance.ChangeShownLevel(1);
-
         if (gamePaused) { 
             PauseGame();
         }
+        ChangeLevel();
         loadingLevel = true;
         StartCoroutine(StartGameTransition());
     }
@@ -101,24 +100,23 @@ public class GameManager : MonoBehaviour
         UIManager.Instance.SettingsMenu(false);
         UIManager.Instance.ShowStart(true);
         UIManager.Instance.ShowEndLevel(false);
-        currentLevel = 0;
         EnemyManager.Instance.ResetCurrentLevelEnemies();
+        currentLevel = 0;
+        AudioManager.Instance.SwapMainMenuMusic();
         ResetScores();
         canPlay = false;
         inStartMenu = true;
+        AudioManager.Instance.SwapMainMenuMusic();
         PauseGame();
-        Debug.Log("Exit to menu called");
+        //Debug.Log("Exit to menu called");
     }
     private void ChangeLevel() {
-        if (currentLevel == 0) {
-            EnemyManager.Instance.ChangeShownLevel(currentLevel);
-        }
+        EnemyManager.Instance.ChangeShownLevel(currentLevel);
     }
     public void NextLevel() {
         StartCoroutine(NextLevelCoroutine());
         loadingLevel = true;
     }
-    //curtains open, mid open player controls slingshot, fully open, wait a second, UIManager starts counting down timer to begin game for 6 seconds, ready... set... GO! 2 seconds for each, at 7 seconds  
     private IEnumerator CountDown()
     {
         GameObject timerBoard;
@@ -152,7 +150,9 @@ public class GameManager : MonoBehaviour
         while (true) {
             //yield return new WaitForSeconds(1);
             inStartMenu = false;
+            AudioManager.Instance.SwapMainMenuMusic();
             ResetTimers();
+            EnemyManager.Instance.ResetCurrentLevelEnemies();
             TransitionManager.Instance.CurtainCall();
             yield return new WaitForSeconds(1);
             UIManager.Instance.StartReady();
@@ -178,10 +178,11 @@ public class GameManager : MonoBehaviour
             TransitionManager.Instance.Lights(true);
             TransitionManager.Instance.CurtainCall();
             yield return new WaitForSeconds(1);
+            currentLevel = (currentLevel + 1) % 2;
             ChangeLevel();
             yield return new WaitForSeconds(1);
+            EnemyManager.Instance.ResetCurrentLevelEnemies();
             TransitionManager.Instance.CurtainCall();
-            currentLevel = (currentLevel + 1) % 2;
             yield return new WaitForSeconds(0.5f);
             TransitionManager.Instance.Lights(false);
             yield return new WaitForSeconds(1.2f);
@@ -197,7 +198,9 @@ public class GameManager : MonoBehaviour
             break;
         }
     }
+    //called when countdown is done
     private IEnumerator EndLevel() {
+        UIManager.Instance.UpdateHighScore(score, currentLevel);
         EnemyManager.Instance.EndLevel();
         canPlay = false;
         slingshot.GetComponent<Slingshot>().ResetSS();

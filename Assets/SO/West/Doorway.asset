@@ -10,27 +10,27 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 87fc225a44b953549b763dc533f87a2e, type: 3}
-  m_Name: rightDuck
+  m_Name: Doorway
   m_EditorClassIdentifier: 
-  leftBound: {x: -5, y: 2.5}
-  rightBound: {x: 5, y: 2.5}
+  leftBound: {x: -12, y: -4}
+  rightBound: {x: 12, y: -4}
   pointValue: 10
-  timeBeforeShowingInScene: 10
+  timeBeforeShowingInScene: 2
   timeBeforeFlippingDown: 0
-  respawnTime: 3
-  maxCycles: -1
+  respawnTime: 15
+  maxCycles: 0
   bounce: 0
-  repeat: 1
+  repeat: 0
   movementSpeed: 1
-  moveDirectionRight: 1
+  moveDirectionRight: 0
   startFacingUp: 0
   waveMotion: 0
   alternate: 0
   waveFrequency: 0
   waveAmplitude: 0
-  downwardTransition: 0
-  scaleUp: 0
-  finalScale: 0
-  initialDowny: 0
-  endingDowny: 0
-  level: 0
+  downwardTransition: 1
+  scaleUp: 1
+  finalScale: 0.445
+  initialDowny: -1.82
+  endingDowny: -3.364
+  level: 1

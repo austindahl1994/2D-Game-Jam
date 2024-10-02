@@ -1,5 +1,6 @@
 using System.Collections;
 using TMPro;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class Enemy : MonoBehaviour
@@ -24,9 +25,13 @@ public class Enemy : MonoBehaviour
 
     private Coroutine MoveCoroutine = null;
     private Coroutine RespawnCoroutine = null;
-
-    public AudioClip[] spawnAudio;
+    private Coroutine FlipCoroutine = null;
     public AudioClip[] hitAudio;
+
+    private Coroutine DownwardTransitionCoroutine;
+    private bool downwardTransitionDone = false;
+    private float initialScale;
+
 
     private void Start()
     {
@@ -35,6 +40,7 @@ public class Enemy : MonoBehaviour
     //This will be called by Enemy Manager, starts the game objects actions
     private void SetInitialStats() {
         initialPosition = transform.position;
+        initialScale = transform.localScale.x;
         speed = ai.movementSpeed;
         respawnTime = ai.respawnTime;
         moveDirection = ai.moveDirectionRight ? 1 : -1;
@@ -44,43 +50,70 @@ public class Enemy : MonoBehaviour
         waveFreq = ai.waveFrequency;
         waveAmp = ai.waveAmplitude;
         isHiding = !ai.startFacingUp;
+        DisableColliders();
         if (!ai.startFacingUp) {
             transform.rotation = Quaternion.Euler(90, transform.rotation.eulerAngles.y, transform.rotation.eulerAngles.z);
         }
     }
-    public void StartActions() {
-        //if it has speed, it is moving, so start moving
-        if (hasBeenStarted)
-        {
+    public void StartActions()
+    {
+        if (ai.level != GameManager.Instance.currentLevel) {
+            Debug.Log("Enemy is in wrong level, not gunna do it's actions!");
             return;
         }
-        else { 
-            hasBeenStarted = true;
-        }
-        if (ai.movementSpeed > 0)
+        //Debug.Log("Start actions called");
+        if (hasBeenStarted)
         {
-            MoveCoroutine = StartCoroutine(Move());
+            //Debug.Log("Already started!");
+            return;
+        }
+        else
+        {
+            hasBeenStarted = true;
         }
         //should the enemy start facing up? eg. off screen, if so, start it up, otherwise flip it
         if (ai.startFacingUp)
         {
             transform.rotation = Quaternion.Euler(0, transform.rotation.eulerAngles.y, transform.rotation.eulerAngles.z);
+            EnableColliders();
         }
         else
         {
-            StartCoroutine(Flip(true));
+            //Debug.Log("Should flip over");
+            TargetFlip();
+        }
+        if (ai.downwardTransition && !downwardTransitionDone)
+        {
+            DownwardTransitionCoroutine = StartCoroutine(DownwardTransition());
+        }
+        else if (speed > 0)
+        {
+            MoveCoroutine = StartCoroutine(Move());
+        }
+        //only needed if stationary, if moving then base on maxCycles
+        if (ai.timeBeforeFlippingDown > 0)
+        {
+            FlipCoroutine = StartCoroutine(FlipTime());
         }
     }
+
     public void Hit()
     {
         UIManager.Instance.SpawnText(transform.position, ai.pointValue);
         GameManager.Instance.AddToScore(ai.pointValue);
-        if (respawnTime > 0) { 
-            RespawnCoroutine = StartCoroutine(Respawn());
+        //moving, needs to be reset since maxCycles is >= 0, 0 for repeat, greater for bounce
+        if (speed > 0 && ai.maxCycles >= 0)
+        {
+            ResetMove(); //flip is called here
         }
-        //could be flipped over already, but hit from sheriff
-        if (!isHiding) { 
-            TargetFlip();
+        else {
+            isRotating = false;
+            isHiding = false;
+            TargetFlip(); //flip over no matter what
+            if (respawnTime > 0)
+            {
+                RespawnCoroutine = StartCoroutine(Respawn());
+            }
         }
     }
     //Called when the target is hit
@@ -103,8 +136,13 @@ public class Enemy : MonoBehaviour
     //if flippedDown (true), flips it up, else if flippedUp (false), flip it down
     private IEnumerator Flip(bool flippedDown)
     {
+        //Debug.Log($"Is flipped down: {flippedDown}, so will be flipping it up: {flippedDown}");
         isRotating = true;
         float elapsed = 0.0f;
+        if (!flippedDown)
+        {
+            DisableColliders();
+        }
 
         Quaternion startRotation = Quaternion.Euler(0, transform.rotation.eulerAngles.y, transform.rotation.eulerAngles.z);
         Quaternion endRotation = Quaternion.Euler(90, transform.rotation.eulerAngles.y, transform.rotation.eulerAngles.z);
@@ -124,23 +162,13 @@ public class Enemy : MonoBehaviour
             elapsed += Time.deltaTime;
             yield return null;
         }
-        //Now opposite of what it was starting
-        flippedDown = !flippedDown;
         if (flippedDown)
         {
-            DisableColliders();
-        }
-        else
-        {
-            /*
-            if (spawnAudio.Length > 0) { 
-                AudioManager.Instance.PlaySFX(spawnAudio[Random.Range(0, spawnAudio.Length)]);
-            }*/
             EnableColliders();
         }
 
         //finalizing flip, ensuring it is 0 or 90 rotation, sets if it is hiding (not shown) or not
-        if (flippedDown)
+        if (!flippedDown)
         {
             transform.rotation = endRotation;
             isHiding = true;
@@ -152,9 +180,26 @@ public class Enemy : MonoBehaviour
         }
         isRotating = false;
     }
-    private IEnumerator Respawn() {
+    private IEnumerator Respawn(bool movingEnemy = false)
+    {
+        if (FlipCoroutine != null) {
+            StopCoroutine(FlipCoroutine);
+            FlipCoroutine = null;   
+        }
         yield return new WaitForSeconds(respawnTime);
-        TargetFlip();
+        if (movingEnemy)
+        {
+            Debug.Log("Moving enemy detected, calling start actions");
+            yield return new WaitForSeconds(0.5f);
+            StartActions();
+        }
+        else {
+            TargetFlip();
+            if (ai.timeBeforeFlippingDown > 0)
+            {
+                FlipCoroutine = StartCoroutine(FlipTime());
+            }
+        }
     }
     private IEnumerator Move()
     {
@@ -212,14 +257,14 @@ public class Enemy : MonoBehaviour
             //Debug.Log(newPosition);
             //put it at the opposite boundry, flip it back up if it needs to reset
             transform.SetPositionAndRotation(new Vector2(newPosition.x, initialPosition.y), Quaternion.Euler(needsToReset ? 0 : 90, transform.rotation.eulerAngles.y, transform.rotation.eulerAngles.z));
-
             if (RespawnCoroutine != null)
             {
                 StopCoroutine(RespawnCoroutine);
                 RespawnCoroutine = null;
             }
-
-            if (needsToReset)
+            if (ai.maxCycles == 0) {
+                ResetMove();
+            } else if (needsToReset)
             {
                 isHiding = false;
                 EnableColliders();
@@ -227,40 +272,93 @@ public class Enemy : MonoBehaviour
             else
             {
                 isHiding = true;
-                DisableColliders();
-                //and remove from scene?
+                TargetFlip();
             }
         }
         else if (ai.bounce)
         {
+            //Debug.Log("Bounce called");
+            //Debug.Log($"cycle count of {cycleCount}");
+            //Debug.Log($"Needs to reset {needsToReset} and time since: {timeSinceBounce}");
             if (needsToReset && timeSinceBounce > 0.45f)
             {
-                transform.localScale = new Vector3(moveDirection > 0 ? Mathf.Abs(transform.localScale.x) : -Mathf.Abs(transform.localScale.x), transform.localScale.y, transform.localScale.z);
-                if (moveDirection > 0)
-                {
-                    gameObject.GetComponent<SpriteRenderer>().sortingOrder = -1;
-                }
-                else {
-                    gameObject.GetComponent<SpriteRenderer>().sortingOrder = -2;
-                }
                 moveDirection *= -1;
                 timeSinceBounce = 0;
             }
-            else if (!needsToReset){
-                if (MoveCoroutine != null) { 
-                    StopCoroutine(MoveCoroutine);
-                    MoveCoroutine = null;
-                    TargetFlip();
-                }
+            else if (!needsToReset || cycleCount == ai.maxCycles){
+                ResetMove();
             }
             // Flip direction
         }
         else
         {
-            // Deactivate object if no repeat or bounce, needsToRespawn is false (spwncnt && cyc)
-            // Or just flip it over
-            gameObject.SetActive(false);
+            isHiding = false;
+            TargetFlip();
         }
+    }
+    //ADD - only needed for stationary objects
+    private IEnumerator FlipTime()
+    {
+        yield return new WaitForSeconds(ai.timeBeforeFlippingDown);
+        if (RespawnCoroutine != null) {
+            StopCoroutine(RespawnCoroutine);
+            RespawnCoroutine = null;
+        }
+        isHiding = false;
+        TargetFlip();
+        yield return new WaitForSeconds(0.5f); //time waiting for flip
+        ResetEnemy(); //reset the enemy to original position/status
+        if (respawnTime > 0)
+        { //means it should respawn forever
+            RespawnCoroutine = StartCoroutine(Respawn());
+        }
+    }
+    private IEnumerator DownwardTransition()
+    {
+        float elapsedTime = 0f;
+        float scaleAndMoveTime = 1.0f; // how long to move/scale
+        float initialScale = transform.localScale.x; // All 3 scales are the same scale
+        yield return new WaitForSeconds(0.3f); // let flip coroutine finish first?
+
+        while (elapsedTime < scaleAndMoveTime)
+        {
+            if (ai.scaleUp)
+            {
+                float scaledAmount = Mathf.Lerp(initialScale, ai.finalScale, elapsedTime / scaleAndMoveTime);
+                transform.localScale = new Vector3(scaledAmount, scaledAmount, scaledAmount);
+            }
+
+            // Update position with correct syntax
+            Vector3 currentPosition = transform.position;
+            float newYPosition = Mathf.Lerp(ai.initialDowny, ai.endingDowny, elapsedTime / scaleAndMoveTime);
+            transform.position = new Vector3(currentPosition.x, newYPosition, currentPosition.z);
+
+            elapsedTime += Time.deltaTime;
+            yield return null; // Wait until the next frame
+        }
+
+        downwardTransitionDone = true;
+
+        yield return new WaitForSeconds(0.5f); // Delay before moving?
+
+        MoveCoroutine = StartCoroutine(Move()); // Call next actions after delay
+    }
+    private void ResetMove()
+    {
+        StartCoroutine(ResetMovingEnemy());
+    }
+    private IEnumerator ResetMovingEnemy()
+    {
+        if (GameManager.Instance.currentLevel == 0)
+        {
+            yield return null;
+        }
+        isHiding = false; //set so that targetflip will flip it over
+        TargetFlip(); //it either swapped sides, bounced last time, or was hit
+        yield return new WaitForSeconds(0.5f); //time for flip to finish
+        ResetEnemy(); //resets to original position
+        yield return new WaitForSeconds(1); //waits for reset to finish
+        RespawnCoroutine = StartCoroutine(Respawn(true));
     }
     private void DisableColliders()
     {
@@ -284,17 +382,13 @@ public class Enemy : MonoBehaviour
     public int GetSpawnDelay() { 
         return ai.timeBeforeShowingInScene;
     }
-    public void StopAllActions() {
-        if (MoveCoroutine != null)
-        {
-            StopCoroutine(MoveCoroutine);
-            MoveCoroutine = null;
-        }
-        if (RespawnCoroutine != null)
-        {
-            StopCoroutine(RespawnCoroutine);
-            RespawnCoroutine = null;
-        }
+    public void StopAllActions()
+    {
+        StopAllCoroutines();
+        MoveCoroutine = null;
+        RespawnCoroutine = null;
+        DownwardTransitionCoroutine = null;
+        FlipCoroutine = null;
     }
     public void ResetEnemy()
     {
@@ -306,12 +400,25 @@ public class Enemy : MonoBehaviour
             StopCoroutine (RespawnCoroutine);
             RespawnCoroutine = null;
         }
-        transform.position = initialPosition;
+        if (DownwardTransitionCoroutine != null)
+        {
+            StopCoroutine(DownwardTransitionCoroutine);
+            DownwardTransitionCoroutine = null;
+        }
+        if (FlipCoroutine != null) {
+            StopCoroutine(FlipCoroutine);
+            FlipCoroutine = null;
+        }
         if (!ai.startFacingUp)
         {
             transform.rotation = Quaternion.Euler(90, transform.rotation.eulerAngles.y, transform.rotation.eulerAngles.z);
+            DisableColliders();
         }
+        transform.localScale = new Vector3(initialScale, initialScale, initialScale);
+        transform.position = initialPosition;
+        downwardTransitionDone = false;
         isHiding = !ai.startFacingUp;
+        isRotating = false;
         hasBeenStarted = false;
         cycleCount = 0;
         timeSinceBounce = 0;

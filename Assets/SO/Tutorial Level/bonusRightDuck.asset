@@ -15,9 +15,9 @@ MonoBehaviour:
   leftBound: {x: -5, y: 2.5}
   rightBound: {x: 5, y: 2.5}
   pointValue: 50
-  timeBeforeShowingInScene: 5
+  timeBeforeShowingInScene: 10
   timeBeforeFlippingDown: 0
-  respawnTime: 10
+  respawnTime: 12
   maxCycles: -1
   bounce: 0
   repeat: 1
@@ -28,3 +28,9 @@ MonoBehaviour:
   alternate: 0
   waveFrequency: 0
   waveAmplitude: 0
+  downwardTransition: 0
+  scaleUp: 0
+  finalScale: 0
+  initialDowny: 0
+  endingDowny: 0
+  level: 0

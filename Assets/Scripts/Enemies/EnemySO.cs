@@ -27,4 +27,12 @@ public class EnemySO : ScriptableObject
     public bool alternate;
     public int waveFrequency; //How fast up/down jiggle
     public float waveAmplitude; //High high above/below initial y to go
+    [Header("Target moves in vertical direction, and if scaling for perspective")]
+    public bool downwardTransition;
+    public bool scaleUp;
+    public float finalScale;
+    public float initialDowny;
+    public float endingDowny;
+    [Header("Enemy Level")] //what level they should appear on
+    public int level = -1;
 }

@@ -11,6 +11,7 @@ public class EnemyManager : MonoBehaviour
     public List<GameObject> westEnemies;
     private List<List<GameObject>> enemyGroups = new();
     private Vector2 offScreen;
+    private Coroutine StopActionCoroutine = null;
     //private Coroutine StartLevelCoroutine;
 
     private void Awake()
@@ -36,6 +37,7 @@ public class EnemyManager : MonoBehaviour
         SortEnemies(tutorialEnemies);
         SortEnemies(westEnemies);
         offScreen = new Vector2(GameManager.Instance.ScreenSize.x * 10, GameManager.Instance.ScreenSize.y * 10);
+        //Debug.Log(enemyGroups.Count);
         /*
          westLevel.position = new Vector2(GameManager.Instance.ScreenSize.x * 10, GameManager.Instance.ScreenSize.y * 10);
         */
@@ -60,16 +62,16 @@ public class EnemyManager : MonoBehaviour
         }
     }
     public void ChangeShownLevel(int cl) {
-        if (cl == 1) //1 for testing west, 0 normally to play starting with tutorial/ducks
+        if (cl == 0) //1 for testing west, 0 normally to play starting with tutorial/ducks
         {
-            //Debug.Log("Moving tutorial out of way");
-            westLevel.transform.position = Vector2.zero;
-            tutorialLevel.position = offScreen;
-        }
-        else {
             //Debug.Log("Moving west out of way");
             tutorialLevel.transform.position = Vector2.zero;
             westLevel.position = offScreen;
+        }
+        else {
+            //Debug.Log("Moving tutorial out of way");
+            westLevel.transform.position = Vector2.zero;
+            tutorialLevel.position = offScreen;
         }
     }
     private void SortEnemies(List<GameObject> enemies)
@@ -83,11 +85,14 @@ public class EnemyManager : MonoBehaviour
         });
     }
     public void ResetCurrentLevelEnemies() {
+        Debug.Log($"Resestting enemies for current level: {GameManager.Instance.currentLevel}");
         foreach (GameObject enemy in enemyGroups[GameManager.Instance.currentLevel]) { 
+            enemy.GetComponent<Enemy>().StopAllActions();
             enemy.GetComponent<Enemy>().ResetEnemy();
         }
     }
     public void StartPlayingLevel(int level) {
+        Debug.Log("Starting level: " + level);
         if (level == 0)
         {
             StartCoroutine(StartLevel(tutorialEnemies));
@@ -100,10 +105,12 @@ public class EnemyManager : MonoBehaviour
         StartCoroutine(EndPlayingLevel());
     }
     public void ForceStopLevel() {
-        Debug.Log("Force stop called");
+        //Debug.Log("Force stop called");
         StopAllCoroutines();
+        StopActionCoroutine = null;
         foreach (GameObject enemy in enemyGroups[GameManager.Instance.currentLevel])
         {
+            enemy.GetComponent<Enemy>().StopAllActions();
             enemy.GetComponent<Enemy>().ResetEnemy();
         }
     } //TODO
@@ -150,9 +157,10 @@ public class EnemyManager : MonoBehaviour
     //when level done, new coroutine for each enemy to stop actions and flip over
     private IEnumerator EndPlayingLevel()
     {
+        Debug.Log("End playing level called for level " + GameManager.Instance.currentLevel);
         foreach (GameObject enemy in enemyGroups[GameManager.Instance.currentLevel])
         {
-            StartCoroutine(StopEnemyActions(enemy));
+            StopActionCoroutine = StartCoroutine(StopEnemyActions(enemy));
         }
 
         yield return null;
@@ -161,11 +169,13 @@ public class EnemyManager : MonoBehaviour
     {
         Enemy ec = enemy.GetComponent<Enemy>();
         ec.StopAllActions();
-        yield return new WaitForSeconds(0.5f); 
+        yield return new WaitForSecondsRealtime(0.5f); 
         if (!ec.isHiding)
         {
             ec.TargetFlip();
         }
+        yield return new WaitForSecondsRealtime(0.4f);
+        ec.ResetEnemy();
         yield return null;
     }
 

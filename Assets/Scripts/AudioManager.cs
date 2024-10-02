@@ -9,6 +9,7 @@ public class AudioManager : MonoBehaviour
     [SerializeField] private AudioSource sfxSource;
     [SerializeField] private AudioSource musicSource;
     [SerializeField] private AudioClip musicClip;
+    [SerializeField] private AudioClip mainMenuMusic;
 
     private void Awake()
     {
@@ -24,7 +25,7 @@ public class AudioManager : MonoBehaviour
 
     private void Start()
     {
-        PlayMusic(musicClip);
+        PlayMusic(mainMenuMusic);
     }
 
     // Method to play a sound effect
@@ -49,6 +50,20 @@ public class AudioManager : MonoBehaviour
     public void ChangeSFXVolume(int v)
     {
         sfxSource.volume = (float)v / 10;
+    }
+
+    public void SwapMainMenuMusic() {
+        if (GameManager.Instance.inStartMenu)
+        {
+            musicSource.clip = mainMenuMusic;
+            musicSource.volume = UIManager.Instance.MusicVolume / 10f;
+            musicSource.Play();
+        }
+        else {
+            musicSource.clip = musicClip;
+            musicSource.volume = UIManager.Instance.MusicVolume / 10f;
+            musicSource.Play();
+        }
     }
 }
 

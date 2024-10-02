@@ -7,11 +7,6 @@ TagManager:
   - Target
   - enemy
   - Ball
-  - blue
-  - red
-  - green
-  - play
-  - exit
   layers:
   - Default
   - TransparentFX
